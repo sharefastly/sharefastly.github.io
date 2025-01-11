@@ -1,0 +1,125 @@
+.navbar-container {
+  width: 100%;
+  overflow-x: auto;
+  background-color: #0067b8;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.navbar {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  min-width: max-content;
+}
+
+.folder {
+  color: #ffffff;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  padding: 8px 14px;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  border-radius: 12px 12px 0 0;
+  font-size: 22px;
+  max-width: 50px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-overflow: ellipsis;
+  margin-left: 3px;
+  max-width: 150px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-block;
+  border: 1px solid #0067b8;
+
+}
+
+.folder:hover,
+.folder:focus {
+  background-color: #91cfff;
+}
+
+.folder-icon {
+  margin-right: 6px;
+  font-size: 1.1em;
+}
+
+.active {
+  background-color: #dedddd;
+  color: rgb(0, 0, 0);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* .add-button {
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 20px;
+  font-size: 18px;
+  margin: 5px 3px;
+}
+ */
+.add-button {
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  width: 30px;  /* Increased to accommodate larger font */
+  height: 30px; /* Keep equal to width for circular shape */
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 50%;
+  font-size: 24px; /* Increased font size */
+  margin: 5px 3px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+}
+.add-button:hover {
+  background-color: #105a00;
+}
+
+.navbar-container::-webkit-scrollbar {
+  height: 3px;
+}
+
+.navbar-container::-webkit-scrollbar-track {
+  background: #f0f0f0;
+}
+
+.navbar-container::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+.navbar-container::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+.logo {
+  width: 20px;
+  height: 20px;
+  margin-right: 6px;
+}
+
+@media (max-width: 600px) {
+  /* .folder {
+    padding: 6px 10px;
+    font-size: 12px;
+  } */
+
+  /* .add-button {
+    padding: 4px 8px;
+    font-size: 10px;
+  } */
+
+  .logo {
+    width: 16px;
+    height: 16px;
+  }
+}

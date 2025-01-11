@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="icon" href="https://pdalabs.github.io/favicon.png" type="image/x-icon">
+    <link rel="stylesheet" href="./styles.css">
+    <link rel="stylesheet" href="./navbar.css">
+    <link rel="stylesheet" href="./upload.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <title>PDA Labs</title>
+</head>
+
+<body>
+    <div Id="super-container">
+        <div class="navbar-container">
+            <nav class="navbar" id="folderNavbar">
+                <a href="#" class="folder" onclick="handleFolderClick(event, 'ALL')">
+                    ALL
+                </a>
+            </nav>
+        </div>
+
+        <div class="uploadBox">
+            <div class="container">
+                <h1>Upload Your Files</h1>
+                <div class="file-list" id="fileList"></div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <input type="file" id="fileInput" multiple style="display: none;">
+                <button class="upload-btn" id="uploadBtn" onclick="handleButtonClick()">
+                    <span class="button-text">Choose and Upload Files</span>
+                    <span class="spinner">
+                        <span class="dot"></span>
+                        <span class="dot"></span>
+                        <span class="dot"></span>
+                </button>
+            </div>
+        </div>
+
+        <div class="load-page-spinner-container" id="load-page-spinner">
+            <div class="load-page-spinner"></div>
+        </div>
+
+        <div id="files-box-container"></div>
+
+        <div id="delete-button-cont"></div> <!--cont stands for container -->
+        <div id="ifFolderIsEmpty"></div>
+    </div>
+
+
+    <script src="./folderNav.js"></script>
+    <script src="./upload.js"></script>
+    <script src="deleteFile.js"></script>
+    <script src="./script.js"></script>
+
+</body>
+
+</html>
