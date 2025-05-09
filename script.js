@@ -1,4 +1,4 @@
-const githubUsername = "FastlyShare";
+const githubUsername = "sharefastly";
 const repoName = "data";
 const fileDirectory = "files";
 const branch = "main";
