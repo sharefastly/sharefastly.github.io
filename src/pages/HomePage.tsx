@@ -1,54 +1,58 @@
 // Home Page - main file listing with upload
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
+import Fuse from 'fuse.js';
 import { useApp } from '../context';
 import { Layout, UploadBox, FileGrid, PageSpinner } from '../components';
+import type { ProcessedFile } from '../types';
+
+function buildSearchableText(file: ProcessedFile): string {
+  // Notes: match only the note title (displayName with .post stripped). Untitled notes have no title to match.
+  if (file.fileType === 'post') {
+    return (file.displayName || '').replace(/\.post$/i, '').trim().toLowerCase();
+  }
+  // Other files: match display name and file type
+  const d = (file.displayName || '').toLowerCase();
+  const t = (file.fileType || '').toLowerCase();
+  return [d, t].filter(Boolean).join(' ').trim();
+}
 
 interface HomePageProps {
+  searchQuery?: string;
+  onSearchChange?: (value: string) => void;
   onNavigateToDelete: () => void;
 }
 
-export function HomePage({ onNavigateToDelete }: HomePageProps) {
+export function HomePage({
+  searchQuery: searchQueryProp,
+  onSearchChange,
+  onNavigateToDelete,
+}: HomePageProps) {
   const { state } = useApp();
   const { currentFileList, isLoading, hasFetched, error, currentFolder } = state;
-  const [searchQuery, setSearchQuery] = useState('');
+  const [internalSearch, setInternalSearch] = useState('');
+  const searchQuery = searchQueryProp ?? internalSearch;
+  const setSearchQuery = onSearchChange ?? setInternalSearch;
 
-  // Filter files based on search query
-  const filteredFiles = useMemo(() => {
+  // Search: Fuse.js fuzzy search when query present; when cleared, return
+  // currentFileList as-is so the list restores to the original date order.
+  const filteredFiles = useMemo((): ProcessedFile[] => {
     if (!searchQuery.trim()) {
       return currentFileList;
     }
-    const query = searchQuery.toLowerCase().trim();
-    return currentFileList.filter((file) => {
-      // Skip folder marker files
-      if (file.fileType === 'folder') {
-        return false;
-      }
-      
-      // Search by display name (file name or note title)
-      const displayName = (file.displayName || '').toLowerCase();
-      
-      // Search by file type/extension
-      const fileType = (file.fileType || '').toLowerCase();
-      
-      // For notes: check if it's a note and allow searching by "note" keyword
-      const isNote = fileType === 'post';
-      const noteSearchTerms = isNote ? 'note post' : '';
-      
-      // For untitled notes, allow searching by "untitled"
-      const untitledTerm = isNote && !displayName ? 'untitled' : '';
-      
-      // Combine all searchable terms
-      const searchableText = `${displayName} ${fileType} ${noteSearchTerms} ${untitledTerm}`;
-      
-      return searchableText.includes(query);
+    const list = currentFileList.filter((f) => f.fileType !== 'folder');
+    const withSearch = list.map((f) => ({ ...f, _search: buildSearchableText(f) }));
+    const fuse = new Fuse(withSearch, {
+      keys: ['_search'],
+      threshold: 0.35,
+      ignoreLocation: true,
+    });
+    const results = fuse.search(searchQuery.trim());
+    return results.map((r) => {
+      const { _search: _, ...file } = r.item;
+      return file as ProcessedFile;
     });
   }, [currentFileList, searchQuery]);
-
-  // Reset search when folder changes
-  useEffect(() => {
-    setSearchQuery('');
-  }, [currentFolder]);
 
   // Show loading spinner until initial fetch is complete
   if (isLoading || !hasFetched) {

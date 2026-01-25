@@ -1,13 +1,15 @@
 // FolderNavbar component - horizontal folder navigation
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context';
 import { CONSTANTS } from '../../utils';
 import { GitHubService } from '../../services';
 import { OverlaySpinner } from '../ui';
 
 export function FolderNavbar() {
-  const { state, setCurrentFolder, refreshFiles } = useApp();
+  const navigate = useNavigate();
+  const { state, refreshFiles } = useApp();
   const { folders, currentFolder, globalFileList } = state;
   const [isAdding, setIsAdding] = useState(false);
 
@@ -17,7 +19,11 @@ export function FolderNavbar() {
   ).length;
 
   const handleFolderClick = (folderName: string) => {
-    setCurrentFolder(folderName);
+    if (folderName === CONSTANTS.ALL_FOLDER) {
+      navigate('/');
+    } else {
+      navigate(`/f/${encodeURIComponent(folderName)}`);
+    }
   };
 
   const handleAddFolder = async () => {
@@ -48,8 +54,7 @@ export function FolderNavbar() {
     try {
       await GitHubService.uploadBlankFile(folderFileName);
       await refreshFiles();
-      // Switch to the new folder
-      setCurrentFolder(folderFileName);
+      navigate(`/f/${encodeURIComponent(folderFileName)}`);
     } catch (error) {
       console.error('Failed to create folder:', error);
       alert('Failed to create folder. Please try again.');

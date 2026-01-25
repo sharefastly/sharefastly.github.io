@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import type { ProcessedFile } from '../../types';
-import { getDisplayName} from '../../utils';
+import { getDisplayName } from '../../utils';
+import { GitHubService } from '../../services';
 import { Spinner } from './Spinner';
 
 interface PreviewModalProps {
@@ -36,12 +37,17 @@ export function PreviewModal({ file, onClose }: PreviewModalProps) {
   const [textContent, setTextContent] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   if (!file) return null;
 
   const displayName = getDisplayName(file.name);
   const previewType = getPreviewType(file.fileType);
   const rawUrl = file.download_url;
+  const downloadFilename =
+    file.fileType === 'post'
+      ? (displayName ? displayName.replace(/\.post$/i, '') + '.txt' : 'Note.txt')
+      : (displayName || file.name);
 
   // Fetch text content for text files and posts
   useEffect(() => {
@@ -67,31 +73,16 @@ export function PreviewModal({ file, onClose }: PreviewModalProps) {
     }
   }, [file, previewType, rawUrl]);
 
-  // Handle escape key and browser back
+  // Handle escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
-    
-    // Push state for back button support
-    window.history.pushState({ preview: true }, '');
-    
-    const handlePopState = () => {
-      onClose();
-    };
-    
     window.addEventListener('keydown', handleEscape);
-    window.addEventListener('popstate', handlePopState);
-    
-    return () => {
-      window.removeEventListener('keydown', handleEscape);
-      window.removeEventListener('popstate', handlePopState);
-    };
+    return () => window.removeEventListener('keydown', handleEscape);
   }, [onClose]);
 
-  const handleClose = () => {
-    window.history.back();
-  };
+  const handleClose = () => onClose();
 
   const handleCopyText = async () => {
     try {
@@ -100,6 +91,17 @@ export function PreviewModal({ file, onClose }: PreviewModalProps) {
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error('Failed to copy:', err);
+    }
+  };
+
+  const handleDownload = async () => {
+    setIsDownloading(true);
+    try {
+      await GitHubService.downloadFile(rawUrl, downloadFilename);
+    } catch (err) {
+      console.error('Download failed:', err);
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -160,16 +162,26 @@ export function PreviewModal({ file, onClose }: PreviewModalProps) {
           )}
           
           {/* Download button */}
-          <a
-            href={rawUrl}
-            download={displayName}
-            className="flex items-center gap-1 sm:gap-2 px-3 py-2 bg-[#0C2B4E] hover:bg-[#1A3D64] text-white rounded-lg transition-colors text-sm"
+          <button
+            type="button"
+            onClick={handleDownload}
+            disabled={isDownloading}
+            className="flex items-center gap-1 sm:gap-2 px-3 py-2 bg-[#0C2B4E] hover:bg-[#1A3D64] disabled:opacity-70 disabled:cursor-wait text-white rounded-lg transition-colors text-sm"
           >
-            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            <span className="hidden sm:inline">Download</span>
-          </a>
+            {isDownloading ? (
+              <>
+                <span className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span className="hidden sm:inline">Preparing...</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                <span className="hidden sm:inline">Download</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
 
@@ -190,13 +202,14 @@ export function PreviewModal({ file, onClose }: PreviewModalProps) {
               <span className="text-3xl sm:text-4xl">⚠️</span>
             </div>
             <p className="text-red-600 text-base sm:text-lg">{error}</p>
-            <a
-              href={rawUrl}
-              download={displayName}
-              className="mt-4 inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-[#0C2B4E] text-white font-semibold rounded-lg hover:bg-[#1A3D64] transition-colors text-sm sm:text-base"
+            <button
+              type="button"
+              onClick={handleDownload}
+              disabled={isDownloading}
+              className="mt-4 inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-[#0C2B4E] text-white font-semibold rounded-lg hover:bg-[#1A3D64] disabled:opacity-70 disabled:cursor-wait transition-colors text-sm sm:text-base"
             >
-              Download Instead
-            </a>
+              {isDownloading ? 'Preparing...' : 'Download Instead'}
+            </button>
           </div>
         )}
 
@@ -343,16 +356,21 @@ export function PreviewModal({ file, onClose }: PreviewModalProps) {
             </div>
             <p className="text-gray-800 text-lg sm:text-xl font-medium">Preview not available</p>
             <p className="text-gray-500 text-sm sm:text-base">File type: .{file.fileType.toUpperCase()}</p>
-            <a
-              href={rawUrl}
-              download={displayName}
-              className="mt-4 inline-flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-[#0C2B4E] text-white font-bold rounded-xl hover:bg-[#1A3D64] transition-colors shadow-lg text-sm sm:text-base"
+            <button
+              type="button"
+              onClick={handleDownload}
+              disabled={isDownloading}
+              className="mt-4 inline-flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-[#0C2B4E] text-white font-bold rounded-xl hover:bg-[#1A3D64] disabled:opacity-70 disabled:cursor-wait transition-colors shadow-lg text-sm sm:text-base"
             >
-              <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              Download File
-            </a>
+              {isDownloading ? (
+                <span className="w-5 h-5 sm:w-6 sm:h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+              )}
+              {isDownloading ? 'Preparing...' : 'Download File'}
+            </button>
           </div>
         )}
       </div>

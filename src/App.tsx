@@ -1,30 +1,22 @@
-import { useState } from 'react';
-import { AppProvider } from './context';
-import { HomePage, DeletePage } from './pages';
-import { CONFIG } from './utils';
-
-type Page = 'home' | 'delete';
+import { AppProvider, ShareLaunchProvider } from './context';
+import { Routes, Route } from 'react-router-dom';
+import { HomeRoute } from './pages/HomeRoute';
+import { PreviewRoute } from './pages/PreviewRoute';
+import { DeleteRoute } from './pages/DeleteRoute';
+import { InstallPwaBanner } from './components/ui';
 
 function App() {
-  const [currentPage, setCurrentPage] = useState<Page>('home');
-
-  const handleNavigateToDelete = () => {
-    const password = prompt('Enter password to access delete menu:');
-    if (password === CONFIG.security.deletePassword) {
-      setCurrentPage('delete');
-    } else if (password !== null) {
-      alert('Incorrect password');
-    }
-  };
-
   return (
     <AppProvider>
-      {currentPage === 'home' && (
-        <HomePage onNavigateToDelete={handleNavigateToDelete} />
-      )}
-      {currentPage === 'delete' && (
-        <DeletePage onBack={() => setCurrentPage('home')} />
-      )}
+      <ShareLaunchProvider>
+        <Routes>
+          <Route path="/" element={<HomeRoute />} />
+          <Route path="/f/:folder" element={<HomeRoute />} />
+          <Route path="/preview" element={<PreviewRoute />} />
+          <Route path="/delete" element={<DeleteRoute />} />
+        </Routes>
+        <InstallPwaBanner />
+      </ShareLaunchProvider>
     </AppProvider>
   );
 }

@@ -1,10 +1,11 @@
 // FileCard component - displays individual file or folder
 
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { ProcessedFile } from '../../types';
 import { getFileIcon, getFileTypeLabel, getDisplayName, CONSTANTS } from '../../utils';
 import { GitHubService } from '../../services';
-import { Button, PreviewModal } from '../ui';
+import { Button } from '../ui';
 
 interface FileCardProps {
   file: ProcessedFile;
@@ -13,10 +14,11 @@ interface FileCardProps {
 }
 
 export function FileCard({ file, showDelete = false, onDelete }: FileCardProps) {
-  const [showPreview, setShowPreview] = useState(false);
+  const navigate = useNavigate();
   const [postContent, setPostContent] = useState<string | null>(null);
   const [isLoadingPost, setIsLoadingPost] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const isFolder = file.name.endsWith(CONSTANTS.FOLDER_SUFFIX);
   const isPost = file.fileType === 'post';
   const displayName = isFolder 
@@ -43,10 +45,13 @@ export function FileCard({ file, showDelete = false, onDelete }: FileCardProps) 
   }, [isPost, file.download_url, postContent, isLoadingPost]);
 
   const handleDownload = async () => {
+    setIsDownloading(true);
     try {
       await GitHubService.downloadFile(file.download_url, displayName);
     } catch (error) {
       console.error('Download failed:', error);
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -68,6 +73,8 @@ export function FileCard({ file, showDelete = false, onDelete }: FileCardProps) 
     }
   };
 
+  const openPreview = () => navigate(`/preview?f=${encodeURIComponent(file.name)}`);
+
   // Render note card - distinctive postcard style
   if (isPost) {
     // Strip .post extension from display name
@@ -75,10 +82,6 @@ export function FileCard({ file, showDelete = false, onDelete }: FileCardProps) 
     
     return (
       <>
-        {showPreview && (
-          <PreviewModal file={file} onClose={() => setShowPreview(false)} />
-        )}
-        
         <div className="group bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200 rounded-xl p-5 shadow-md hover:shadow-xl transition-all duration-200 hover:-translate-y-0.5 flex flex-col h-full relative overflow-hidden">
           {/* Note badge */}
           <div className="absolute top-0 right-0 bg-amber-400 text-amber-900 text-xs font-bold px-3 py-1 rounded-bl-lg">
@@ -138,7 +141,7 @@ export function FileCard({ file, showDelete = false, onDelete }: FileCardProps) 
           {/* Actions - fixed at bottom */}
           <div className="flex gap-3 flex-wrap mt-auto">
             <button
-              onClick={() => setShowPreview(true)}
+              onClick={openPreview}
               className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold text-sm rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -164,11 +167,6 @@ export function FileCard({ file, showDelete = false, onDelete }: FileCardProps) 
 
   return (
     <>
-      {/* Preview Modal - rendered at top level */}
-      {showPreview && (
-        <PreviewModal file={file} onClose={() => setShowPreview(false)} />
-      )}
-
       <div className="group bg-white border border-[#1A3D64]/20 rounded-xl p-5 shadow-md hover:shadow-xl transition-all duration-200 hover:-translate-y-0.5 flex flex-col h-full">
         {/* File Info Section */}
         <div className="flex items-start gap-4 mb-4 flex-1">
@@ -204,7 +202,7 @@ export function FileCard({ file, showDelete = false, onDelete }: FileCardProps) 
         <div className="flex gap-3 flex-wrap mt-auto">
           {!isFolder && (
             <button
-              onClick={() => setShowPreview(true)}
+              onClick={openPreview}
               className="inline-flex items-center gap-2 px-4 py-2 bg-[#0C2B4E] hover:bg-[#1A3D64] text-white font-semibold text-sm rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
             >
               <svg
@@ -248,21 +246,36 @@ export function FileCard({ file, showDelete = false, onDelete }: FileCardProps) 
               Delete {isFolder ? 'Folder' : ''}
             </Button>
           ) : !isFolder ? (
-            <Button variant="success" size="md" onClick={handleDownload}>
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                />
-              </svg>
-              Download
+            <Button
+              variant="success"
+              size="md"
+              onClick={handleDownload}
+              disabled={isDownloading}
+              className={isDownloading ? 'opacity-80 cursor-wait' : ''}
+            >
+              {isDownloading ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  Preparing...
+                </>
+              ) : (
+                <>
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                    />
+                  </svg>
+                  Download
+                </>
+              )}
             </Button>
           ) : null}
         </div>

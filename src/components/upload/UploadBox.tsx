@@ -1,7 +1,7 @@
 // UploadBox component - file upload with progress
 
-import { useState, useRef, useCallback } from 'react';
-import { useApp } from '../../context';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { useApp, useShareLaunch } from '../../context';
 import { GitHubService } from '../../services';
 import { CONSTANTS, getCurrentDateTime, readFileAsBase64 } from '../../utils';
 import { Button } from '../ui';
@@ -24,12 +24,32 @@ const RETRY_DELAY = 2000; // 2 seconds
 
 export function UploadBox() {
   const { state, refreshFiles } = useApp();
+  const { pendingFiles, consumeFiles, sharedForNote, consumeNotePrefill } = useShareLaunch();
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatuses, setUploadStatuses] = useState<FileUploadStatus[]>([]);
   const [isNoteOpen, setIsNoteOpen] = useState(false);
   const [uploadFolder, setUploadFolder] = useState<string>(state.currentFolder);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Pre-fill from Android share (launchQueue) or Share Target
+  useEffect(() => {
+    if (pendingFiles.length > 0) {
+      setSelectedFiles(
+        pendingFiles.map((f) => ({
+          file: f,
+          customName: f.name.includes('.') ? f.name.split('.').slice(0, -1).join('.') : f.name,
+        }))
+      );
+      setUploadFolder(state.currentFolder);
+      consumeFiles();
+    }
+  }, [pendingFiles, state.currentFolder, consumeFiles]);
+
+  // Open note modal when shared text/url received (share target or ?title=&text=&url=)
+  useEffect(() => {
+    if (sharedForNote) setIsNoteOpen(true);
+  }, [sharedForNote]);
 
   // Update uploadFolder when currentFolder changes (only if no files selected)
   const handleFileSelect = useCallback(
@@ -440,7 +460,15 @@ export function UploadBox() {
       </div>
 
       {/* Note Modal */}
-      <TextNote isOpen={isNoteOpen} onClose={() => setIsNoteOpen(false)} />
+      <TextNote
+        isOpen={isNoteOpen}
+        onClose={() => {
+          setIsNoteOpen(false);
+          consumeNotePrefill();
+        }}
+        initialTitle={sharedForNote?.title ?? ''}
+        initialContent={sharedForNote?.content ?? ''}
+      />
     </div>
   );
 }

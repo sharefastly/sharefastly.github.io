@@ -1,6 +1,6 @@
 // TextNote component - create and upload text content as a note
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useApp } from '../../context';
 import { GitHubService } from '../../services';
 import { CONSTANTS, getCurrentDateTime } from '../../utils';
@@ -9,14 +9,24 @@ import { Button, OverlaySpinner } from '../ui';
 interface TextNoteProps {
   isOpen: boolean;
   onClose: () => void;
+  initialTitle?: string;
+  initialContent?: string;
 }
 
-export function TextNote({ isOpen, onClose }: TextNoteProps) {
+export function TextNote({ isOpen, onClose, initialTitle = '', initialContent = '' }: TextNoteProps) {
   const { state, refreshFiles } = useApp();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // When opening with shared content (e.g. from Android share), pre-fill
+  useEffect(() => {
+    if (isOpen && (initialTitle || initialContent)) {
+      setTitle(initialTitle);
+      setContent(initialContent);
+    }
+  }, [isOpen, initialTitle, initialContent]);
 
   const handleSubmit = async () => {
     if (!content.trim()) {
